@@ -2,6 +2,16 @@
 ;;;; - Avoid strings? Reader macros/types instead?
 ;;;; - Don't require nesting but also allow it
 ;;;; - Allow gradual specificity
+;;;; - Need some way to do high level templating so you can stamp out
+;;;;   multiple copies
+
+;;; Prefixes everything; need params too
+(namespace @my-ns
+	   :params ((cluster-size 10)))
+
+
+;;; also a convention if you use / it automatically adds to containing
+;;; thing. Namespace is special case; it's auto-added.
 
 ;;; @name is always the name of something
 (vpc @my-vpc
@@ -9,7 +19,25 @@
      :cidr #c(10.13.0.0/16)
 
      (subnet @dev-subnet
-	     :cidr #c(10.13.0.0/24)))
+	     :cidr #c(10.13.0.0/24))
+
+     :tag some-tag)
+
+
+;; Or you could do:
+
+(vpc @my-ns/@my-vpc
+     ;; blah blah blah
+     )
+
+;;; tags can be k/v or not
+(tag @my-vpc '(another-tag 23)
+             yet-another-tag)
+
+
+;;; this is really just a fragment/template, not a complete object -
+;;; different naming convention?
+(ebs-volume @basic-volume "/dev/sda" :size 200)
 
 ;;; - upper-case is always substituted?
 ;;; - or use $thing maybe?
@@ -17,12 +45,19 @@
 	      ;; creates a subnet? automatically called spatula-subnet?
 	      ;; or throws an error
 	      :private-ip #c(10.13.2.$n)
+	      :volume @basic-volume
 	      )
-     
-(want 10 @spatula-$n)
+
+;;; or you could do (implicit :in)
+;;; name (for later reference) is still @spatula-$n
+(ec2-instance @my-vpc/@spatula-$n)
+(ec2-instance @my-vpc/@dev-subnet/@spatula-$n)
+	      
+
+(want $cluster-size @spatula-$n)
 
 ;;; Maybe can leave off -$n if it's unambiguous?
-(want 10 @spatula)
+(want $cluster-size @spatula)
 
 ;; Rule: any constraint can be specified later (like in). Okay to
 ;; repeat something you already said
@@ -65,3 +100,5 @@
 (ec2-instance @frank-$n :in @my-vpc
 	      :private-ips (10.13.2.$n 10.13.3.$n)
 	      )
+
+
